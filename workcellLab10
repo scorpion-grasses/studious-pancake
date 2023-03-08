@@ -1,0 +1,215 @@
+double Magnet5_duration = 500.0;
+// User defined function
+void myblockfunction_Red_Detected();
+// User defined function
+void myblockfunction_Green_Detected();
+// User defined function
+void myblockfunction_Blue_Detected();
+
+
+int Brain_precision = 0, Console_precision = 0;
+
+
+float myVariable, y, x, i;
+
+
+event message1 = event();
+
+
+// User defined function
+void myblockfunction_Red_Detected() {
+ // Load red disk
+ EntryMotor.spin(forward);
+ wait(1.5, seconds);
+ EntryMotor.stop();
+ // Move red disk onto transport conveyor
+ TransportMotor.spin(forward);
+ // Spin diverter when disk is detected by load sensor
+ waitUntil((Load.reflectivity() > 16.0));
+ DiverterMotor.spinToPosition(90.0, degrees, true);
+ // Spin exit conveyor until disk is detected by exit sensor
+ ExitMotor.spin(forward);
+ waitUntil((Exit.reflectivity() > 45.0));
+ // Stop all conveyors when disk is detected by exit sensor
+ TransportMotor.stop();
+ ExitMotor.stop();
+}
+
+
+// User defined function
+void myblockfunction_Green_Detected() {
+ // Load green disk
+ EntryMotor.spin(forward);
+ wait(1.5, seconds);
+ EntryMotor.stop();
+ // Move green disk onto transport conveyor
+ TransportMotor.spin(forward);
+ // Spin diverter when disk is detected by load sensor
+ waitUntil((Load.reflectivity() > 16.0));
+ DiverterMotor.spinToPosition(0.0, degrees, true);
+ // Pass green disk through the transport conveyor
+ waitUntil((Pickup.reflectivity() > 38.0));
+ // Stop transport conveyor when disk is detected by pickup sensor
+ TransportMotor.stop();
+ // Sort green disk
+ RoboticArm1.moveToPositionJoint(x, y, 3.0);
+ RoboticArm1.moveToPositionJoint(x, y, 2.0);
+ wait(1.0, seconds);
+ Magnet5.pickup(Magnet5_duration);
+ RoboticArm1.moveToPositionJoint(7.0, 4.5, 2.0);
+ wait(1.0, seconds);
+ Magnet5.drop();
+}
+
+
+// User defined function
+void myblockfunction_Blue_Detected() {
+ // Load blue disk
+ EntryMotor.spin(forward);
+ wait(1.5, seconds);
+ EntryMotor.stop();
+ // Move blue disk onto transport conveyor
+ TransportMotor.spin(forward);
+ // Spin diverter when disk is detected by load sensor
+ waitUntil((Load.reflectivity() > 16.0));
+ DiverterMotor.spinToPosition(0.0, degrees, true);
+ // Pass blue disk through the transport conveyor
+ waitUntil((Pickup.reflectivity() > 38.0));
+ // Stop transport conveyor when disk is detected by pickup sensor
+ TransportMotor.stop();
+ // Sort blue disk
+ RoboticArm1.moveToPositionJoint(x, y, 3.0);
+ RoboticArm1.moveToPositionJoint(x, y, 2.0);
+ wait(1.0, seconds);
+ Magnet5.pickup(Magnet5_duration);
+ RoboticArm1.moveToPositionJoint(7.0, 7.0, 2.0);
+ wait(1.0, seconds);
+ Magnet5.drop();
+}
+
+
+// "when started" hat block
+int whenStarted1() {
+ y = 6.9;
+ x = 3.6;
+ i = 0.0;
+ RoboticArm1.setMasteringValues(1972.0,2076.0,1875.0,395.0);
+ RoboticArm1.setToolTipOffset(-0.7, 0.0, -2.0);
+ Magnet5_duration = 500;
+ Magnet5.setPower(100.0);
+ Optical6.setLight(ledState::on);
+ Optical6.setLightPower(100.0, percent);
+ EntryMotor.setVelocity(70.0, percent);
+ TransportMotor.setVelocity(15.0, percent);
+ ExitMotor.setVelocity(50.0, percent);
+ DiverterMotor.setVelocity(30.0, percent);
+ while (true) {
+   waitUntil(Optical6.isNearObject());
+   if (Optical6.color() == red) {
+     myblockfunction_Red_Detected();
+   }
+   else {
+     if (Optical6.color() == blue) {
+       myblockfunction_Blue_Detected();
+       i = i + 1.0;
+       if (i < 2.0) {
+         y = y + -0.4;
+         x = x + -0.4;
+       }
+     }
+     else {
+       if (Optical6.color() == green) {
+         myblockfunction_Green_Detected();
+         i = i + 1.0;
+         if (i < 2.0) {
+           y = y + -0.4;
+           x = x + -0.4;
+         }
+       }
+     }
+   }
+ wait(5, msec);
+ }
+ return 0;
+}
+
+
+// "when started" hat block
+int whenStarted2() {
+ Brain.Screen.setFont(mono30);
+ while (true) {
+   Brain_precision = 3;
+   Brain.Screen.clearScreen();
+   // Display the X position on row 1
+   Brain.Screen.setCursor(1, 1);
+   Brain.Screen.print("Arm X: ");
+   Brain.Screen.print(printToBrain_numberFormat(), static_cast<float>(RoboticArm1.getAxisPosition(xaxis)));
+   Brain.Screen.newLine();
+   // Display the Y position on row 2
+   Brain.Screen.print("Arm Y: ");
+   Brain.Screen.print(printToBrain_numberFormat(), static_cast<float>(RoboticArm1.getAxisPosition(yaxis)));
+   Brain.Screen.newLine();
+   // Display the Z position on row 3
+   Brain.Screen.print("Arm Z: ");
+   Brain.Screen.print(printToBrain_numberFormat(), static_cast<float>(RoboticArm1.getAxisPosition(zaxis)));
+   Brain.Screen.newLine();
+   // Display if a disk is detected on row 4
+   Brain.Screen.print("Disk Detect: ");
+   Brain.Screen.print("%s", Optical6.isNearObject() ? "TRUE" : "FALSE");
+   Brain.Screen.newLine();
+   // Display the color of the disk if an object is found on row 5
+   Brain.Screen.print("R: ");
+   Brain.Screen.print("%s", Optical6.color() == red ? "TRUE" : "FALSE");
+   Brain.Screen.print(" / B: ");
+   Brain.Screen.print("%s", Optical6.color() == blue ? "TRUE" : "FALSE");
+   Brain.Screen.print(" / G: ");
+   Brain.Screen.print("%s", Optical6.color() == green ? "TRUE" : "FALSE");
+   Brain.Screen.newLine();
+   // Display the percentage of light reflected back from the Load Sensor on row 6
+   Brain_precision = 0;
+   Brain.Screen.print("Load: ");
+   Brain.Screen.print(printToBrain_numberFormat(), static_cast<float>(Load.reflectivity()));
+   Brain.Screen.newLine();
+   // Display the percentage of light reflected back from the Pickup Sensor on row 7
+   Brain.Screen.print("Pickup: ");
+   Brain.Screen.print(printToBrain_numberFormat(), static_cast<float>(Pickup.reflectivity()));
+   Brain.Screen.newLine();
+   // Display the percentage of light reflected back from the Exit Sensor on row 8
+   Brain.Screen.print("Exit: ");
+   Brain.Screen.print(printToBrain_numberFormat(), static_cast<float>(Exit.reflectivity()));
+   wait(0.2, seconds);
+ wait(5, msec);
+ }
+ return 0;
+}
+
+
+// "when EStop pressed" hat block
+void onevent_EStop_pressed_0() {
+ RoboticArm1.emergencyStop();
+}
+
+
+
+
+int main() {
+ // register event handlers
+ EStop.pressed(onevent_EStop_pressed_0);
+
+
+ wait(15, msec);
+ // post event registration
+
+
+ // set default print color to black
+ printf("\033[30m");
+
+
+ // wait for rotation sensor to fully initialize
+ wait(30, msec);
+
+
+ vex::task ws1(whenStarted2);
+ whenStarted1();
+}
+
